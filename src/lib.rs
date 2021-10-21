@@ -30,7 +30,6 @@ impl From<pest::error::Error<Rule>> for Error {
 #[grammar = "aycalc.pest"]
 pub struct AyCalcParser;
 
-
 /// The type which holds the values the calculator operates on
 /// The i128 is chosen because size-wise it is the same as IPv6 address,
 /// so this can make certain use cases much simpler. evem if not very elegant.
@@ -346,11 +345,7 @@ fn aycalc_eval(
 
 pub fn eval_with(expr: &str, vars: &impl GetVar, func: &impl CallFunc) -> Result<CalcVal, Error> {
     let parser = AyCalcParser::parse(Rule::calculation, expr)?;
-    let res = aycalc_eval(parser, vars, func);
-    if let Ok(okres) = &res {
-        println!("Eval: {:?} ({})", &okres, &okres);
-    }
-    res
+    aycalc_eval(parser, vars, func)
 }
 
 type EmptyVarsFunc = bool;
@@ -370,11 +365,7 @@ impl CallFunc for EmptyVarsFunc {
 pub fn eval(expr: &str) -> Result<CalcVal, Error> {
     let vf: EmptyVarsFunc = false;
     let parser = AyCalcParser::parse(Rule::calculation, expr)?;
-    let res = aycalc_eval(parser, &vf, &vf);
-    if let Ok(okres) = &res {
-        println!("Eval: {:?} ({})", &okres, &okres);
-    }
-    res
+    aycalc_eval(parser, &vf, &vf)
 }
 
 #[cfg(test)]
