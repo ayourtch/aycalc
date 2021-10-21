@@ -9,8 +9,12 @@ struct MyVarDict {
 
 impl GetVar for MyVarDict {
     fn get_var_value(&self, varname: &str) -> Result<CalcVal, Error> {
+        println!("Getting the variable '{}'", varname);
         if let Some(s) = self.vars.get(varname) {
-            parse_calc_val(&s)
+            println!("Got string value: {}", &s);
+            let res = parse_calc_val(&s);
+            println!("Conversion result to CalcVal: {:?}", &res);
+            res
         } else {
             Err(Error::VariableNotFound(varname.to_string()))
         }
