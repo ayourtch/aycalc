@@ -1,0 +1,46 @@
+num = @{ int }
+    int = { ("+" | "-")? ~ ASCII_DIGIT+ }
+
+ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
+variable = { ident ~ ( "." ~ ident )* }
+
+string = ${ "\"" ~ inner ~ "\"" }
+inner = @{ char* }
+char = {
+    !("\"" | "\\") ~ ANY
+    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
+
+operation = _{ add | subtract | multiply | divide | modulo | equal | not_equal | greater_equal | shr | greater | less_equal | shl | less | bitand | bitor | bitxor }
+    add      = { "+" }
+    subtract = { "-" }
+    multiply = { "*" }
+    divide   = { "/" }
+    modulo   = { "%" }
+    equal    = { "==" }
+    not_equal = { "!=" }
+    greater   = { ">" }
+    greater_equal = { ">=" }
+    less = { "<" }
+    less_equal = { "<=" }
+    shl = { "<<" }
+    shr = { ">>" }
+    bitand = { "&" }
+    bitor = { "|" }
+    bitxor = { "^" }
+
+conditional = { term ~ "?" ~ term ~ ":" ~ term }
+
+
+fncall = { ident ~ "(" ~ (expr ~ ("," ~ expr )*)? ~ ")" }
+
+expr = { conditional | term ~ (operation ~ term)* }
+
+term = _{ fncall | num | variable | string | "(" ~ expr ~ ")" }
+
+calculation = _{ SOI ~ expr ~ EOI }
+
+WHITESPACE = _{ " " | "\t" }
+
