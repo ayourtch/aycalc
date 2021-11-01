@@ -255,7 +255,15 @@ pub fn parse_calc_val(s: &str) -> Result<CalcVal, Error> {
     if let Ok(x) = s.parse::<i128>() {
         Ok(CalcVal::Int(x))
     } else {
-        Ok(CalcVal::String(s[1..s.len() - 1].to_string()))
+        if s.len() >= 2 {
+            if s.starts_with('"') && s.ends_with('"') {
+                Ok(CalcVal::String(s[1..s.len() - 1].to_string()))
+            } else {
+                Ok(CalcVal::String(s.to_string()))
+            }
+        } else {
+            Ok(CalcVal::String(s.to_string()))
+        }
     }
 }
 
@@ -432,6 +440,39 @@ mod tests {
         assert_eq!(
             eval_with("2 + test", &vars, &no_func).unwrap(),
             CalcVal::Int(42)
+        );
+    }
+
+    #[test]
+    fn test_variables_string() {
+        let no_func: EmptyVarsFunc = false;
+        let mut vars: MyVarDict = Default::default();
+        vars.vars
+            .insert("test".to_string(), "testing123".to_string());
+
+        assert_eq!(
+            eval_with("test", &vars, &no_func).unwrap(),
+            CalcVal::String("testing123".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_var_1() {
+        assert_eq!(
+            parse_calc_val("testing123").unwrap(),
+            CalcVal::String("testing123".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_var_2() {
+        assert_eq!(parse_calc_val("123").unwrap(), CalcVal::Int(123));
+    }
+    #[test]
+    fn test_parse_var_3() {
+        assert_eq!(
+            parse_calc_val("\"123\"").unwrap(),
+            CalcVal::String("123".to_string())
         );
     }
 
