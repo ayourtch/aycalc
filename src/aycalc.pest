@@ -13,32 +13,30 @@ char = {
     | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
 }
 
-operation = _{ add | subtract | multiply | divide | modulo | equal | not_equal | greater_equal | shr | greater | less_equal | shl | less | bitand | bitor | bitxor }
-    add      = { "+" }
-    subtract = { "-" }
-    multiply = { "*" }
-    divide   = { "/" }
-    modulo   = { "%" }
-    equal    = { "==" }
-    not_equal = { "!=" }
-    greater   = { ">" }
-    greater_equal = { ">=" }
-    less = { "<" }
-    less_equal = { "<=" }
-    shl = { "<<" }
-    shr = { ">>" }
-    bitand = { "&" }
-    bitor = { "|" }
-    bitxor = { "^" }
+add      = { "+" }
+subtract = { "-" }
+multiply = { "*" }
+divide   = { "/" }
+modulo   = { "%" }
+equal    = { "==" }
+not_equal = { "!=" }
+greater   = { ">" }
+greater_equal = { ">=" }
+less = { "<" }
+less_equal = { "<=" }
+shl = { "<<" }
+shr = { ">>" }
+bitand = { "&" }
+bitor = { "|" }
+bitxor = { "^" }
 
-conditional = { term ~ "?" ~ term ~ ":" ~ term }
-
+conditional = { primary ~ "?" ~ primary ~ ":" ~ primary }
 
 fncall = { ident ~ "(" ~ (expr ~ ("," ~ expr )*)? ~ ")" }
 
-expr = { conditional | term ~ (operation ~ term)* }
+primary = _{ fncall | num | variable | string | "(" ~ expr ~ ")" }
 
-term = _{ fncall | num | variable | string | "(" ~ expr ~ ")" }
+expr = { conditional | primary ~ (add ~ primary | subtract ~ primary | multiply ~ primary | divide ~ primary | modulo ~ primary | equal ~ primary | not_equal ~ primary | greater ~ primary | greater_equal ~ primary | less ~ primary | less_equal ~ primary | shl ~ primary | shr ~ primary | bitand ~ primary | bitor ~ primary | bitxor ~ primary)* }
 
 calculation = _{ SOI ~ expr ~ EOI }
 

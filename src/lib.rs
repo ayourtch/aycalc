@@ -5,8 +5,9 @@ extern crate pest_derive;
 extern crate lazy_static;
 
 use pest::iterators::Pair;
-use pest::iterators::Pairs;
-use pest::prec_climber::*;
+use pest::pratt_parser::Assoc;
+use pest::pratt_parser::Op;
+use pest::pratt_parser::PrattParser;
 use pest::Parser;
 use std::convert::TryInto;
 use std::fmt;
@@ -228,26 +229,27 @@ pub trait CallFunc {
 }
 
 lazy_static! {
-    static ref PREC_CLIMBER: PrecClimber<Rule> = {
-        use Assoc::*;
+    static ref PRATT_PARSER: PrattParser<Rule> = {
         use Rule::*;
 
-        PrecClimber::new(vec![
-            Operator::new(conditional, Left),
-            Operator::new(equal, Left)
-                | Operator::new(not_equal, Left)
-                | Operator::new(greater, Left)
-                | Operator::new(greater_equal, Left)
-                | Operator::new(less, Left)
-                | Operator::new(less_equal, Left),
-            Operator::new(bitor, Left) | Operator::new(bitand, Left) | Operator::new(bitxor, Left),
-            Operator::new(add, Left) | Operator::new(subtract, Left),
-            Operator::new(multiply, Left)
-                | Operator::new(divide, Left)
-                | Operator::new(modulo, Left)
-                | Operator::new(shr, Left)
-                | Operator::new(shl, Left),
-        ])
+        PrattParser::new()
+            .op(
+                Op::infix(equal, Assoc::Left)
+                    | Op::infix(not_equal, Assoc::Left)
+                    | Op::infix(greater, Assoc::Left)
+                    | Op::infix(greater_equal, Assoc::Left)
+                    | Op::infix(less, Assoc::Left)
+                    | Op::infix(less_equal, Assoc::Left),
+            )
+            .op(Op::infix(bitor, Assoc::Left) | Op::infix(bitand, Assoc::Left) | Op::infix(bitxor, Assoc::Left))
+            .op(Op::infix(add, Assoc::Left) | Op::infix(subtract, Assoc::Left))
+            .op(
+                Op::infix(multiply, Assoc::Left)
+                    | Op::infix(divide, Assoc::Left)
+                    | Op::infix(modulo, Assoc::Left)
+                    | Op::infix(shr, Assoc::Left)
+                    | Op::infix(shl, Assoc::Left),
+            )
     };
 }
 
@@ -300,6 +302,21 @@ fn eval_pair(pair: Pair<Rule>, vars: &impl GetVar, func: &impl CallFunc) -> Resu
             }
             func.call_func(function_name, &args)
         }
+        Rule::primary => {
+            // primary can be: fncall | num | variable | string | "(" ~ expr ~ ")"
+            // We need to evaluate the inner expression for parenthesized expressions
+            let inner: Vec<_> = pair.into_inner().collect();
+            if inner.is_empty() {
+                unreachable!()
+            }
+            if inner[0].as_rule() == Rule::expr {
+                // Parenthesized expression
+                aycalc_eval(inner.into_iter(), vars, func)
+            } else {
+                // It's a num, variable, string, or fncall - evaluate it directly
+                eval_pair(inner.into_iter().next().unwrap(), vars, func)
+            }
+        }
         _ => unreachable!(),
     }
 }
@@ -335,25 +352,38 @@ fn aycalc_eval_pure(lhs: CalcVal, op: Pair<Rule>, rhs: CalcVal) -> CalcVal {
     }
 }
 
-fn aycalc_eval(
-    expression: Pairs<Rule>,
+fn aycalc_eval<'a>(
+    expression: impl Iterator<Item = Pair<'a, Rule>>,
     vars: &impl GetVar,
     func: &impl CallFunc,
 ) -> Result<CalcVal, Error> {
-    PREC_CLIMBER.climb(
-        expression,
-        |pair: Pair<Rule>| eval_pair(pair, vars, func),
-        |lhs: Result<CalcVal, Error>, op: Pair<Rule>, rhs: Result<CalcVal, Error>| {
+    let pairs: Vec<_> = expression.collect();
+    
+    // Filter out EOI - Pratt parser expects primary ~ (infix ~ primary)*
+    let filtered: Vec<_> = pairs.into_iter()
+        .filter(|p| p.as_rule() != Rule::EOI)
+        .collect();
+    
+    PRATT_PARSER
+        .map_primary(|pair: Pair<Rule>| eval_pair(pair, vars, func))
+        .map_infix(|lhs: Result<CalcVal, Error>, op: Pair<Rule>, rhs: Result<CalcVal, Error>| {
             let lhs = lhs?;
             let rhs = rhs?;
             Ok(aycalc_eval_pure(lhs, op, rhs))
-        },
-    )
+        })
+        .parse(filtered.into_iter())
 }
 
 pub fn eval_with(expr: &str, vars: &impl GetVar, func: &impl CallFunc) -> Result<CalcVal, Error> {
     let parser = AyCalcParser::parse(Rule::calculation, expr)?;
-    aycalc_eval(parser, vars, func)
+    // Get the expr from the calculation rule
+    let mut pairs = parser;
+    let first = pairs.next().expect("Expected at least one pair");
+    if first.as_rule() == Rule::expr {
+        aycalc_eval(first.into_inner(), vars, func)
+    } else {
+        panic!("Expected expr, got {:?}", first.as_rule())
+    }
 }
 
 type EmptyVarsFunc = bool;
