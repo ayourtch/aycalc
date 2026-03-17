@@ -486,4 +486,235 @@ mod tests {
             CalcVal::String("2a".to_string())
         );
     }
+
+    // --- Arithmetic operators ---
+
+    #[test]
+    fn test_addition() {
+        assert_eq!(eval("3 + 4").unwrap(), CalcVal::Int(7));
+    }
+
+    #[test]
+    fn test_subtraction() {
+        assert_eq!(eval("10 - 3").unwrap(), CalcVal::Int(7));
+    }
+
+    #[test]
+    fn test_multiplication() {
+        assert_eq!(eval("6 * 7").unwrap(), CalcVal::Int(42));
+    }
+
+    #[test]
+    fn test_division() {
+        assert_eq!(eval("84 / 2").unwrap(), CalcVal::Int(42));
+    }
+
+    #[test]
+    fn test_modulo() {
+        assert_eq!(eval("10 % 3").unwrap(), CalcVal::Int(1));
+    }
+
+    #[test]
+    fn test_negative_numbers() {
+        assert_eq!(eval("-5 + 3").unwrap(), CalcVal::Int(-2));
+    }
+
+    // --- Bitwise operators ---
+
+    #[test]
+    fn test_bitand() {
+        assert_eq!(eval("12 & 10").unwrap(), CalcVal::Int(8));
+        assert_eq!(eval("255 & 15").unwrap(), CalcVal::Int(15));
+    }
+
+    #[test]
+    fn test_bitor() {
+        assert_eq!(eval("12 | 10").unwrap(), CalcVal::Int(14));
+    }
+
+    #[test]
+    fn test_bitxor() {
+        assert_eq!(eval("12 ^ 10").unwrap(), CalcVal::Int(6));
+    }
+
+    // --- Shift operators ---
+
+    #[test]
+    fn test_shl() {
+        assert_eq!(eval("1 << 4").unwrap(), CalcVal::Int(16));
+    }
+
+    #[test]
+    fn test_shr() {
+        assert_eq!(eval("16 >> 2").unwrap(), CalcVal::Int(4));
+    }
+
+    // --- Comparison operators ---
+
+    #[test]
+    fn test_equal_true() {
+        assert_eq!(eval("5 == 5").unwrap(), CalcVal::Int(1));
+    }
+
+    #[test]
+    fn test_equal_false() {
+        assert_eq!(eval("5 == 6").unwrap(), CalcVal::Int(0));
+    }
+
+    #[test]
+    fn test_not_equal_true() {
+        assert_eq!(eval("5 != 6").unwrap(), CalcVal::Int(1));
+    }
+
+    #[test]
+    fn test_not_equal_false() {
+        assert_eq!(eval("5 != 5").unwrap(), CalcVal::Int(0));
+    }
+
+    #[test]
+    fn test_greater_true() {
+        assert_eq!(eval("6 > 5").unwrap(), CalcVal::Int(1));
+    }
+
+    #[test]
+    fn test_greater_false() {
+        assert_eq!(eval("5 > 5").unwrap(), CalcVal::Int(0));
+    }
+
+    #[test]
+    fn test_greater_equal_true() {
+        assert_eq!(eval("5 >= 5").unwrap(), CalcVal::Int(1));
+    }
+
+    #[test]
+    fn test_greater_equal_false() {
+        assert_eq!(eval("4 >= 5").unwrap(), CalcVal::Int(0));
+    }
+
+    #[test]
+    fn test_less_true() {
+        assert_eq!(eval("4 < 5").unwrap(), CalcVal::Int(1));
+    }
+
+    #[test]
+    fn test_less_false() {
+        assert_eq!(eval("5 < 5").unwrap(), CalcVal::Int(0));
+    }
+
+    #[test]
+    fn test_less_equal_true() {
+        assert_eq!(eval("5 <= 5").unwrap(), CalcVal::Int(1));
+    }
+
+    #[test]
+    fn test_less_equal_false() {
+        assert_eq!(eval("6 <= 5").unwrap(), CalcVal::Int(0));
+    }
+
+    // --- Conditional (ternary) operator ---
+
+    #[test]
+    fn test_conditional_true_branch() {
+        assert_eq!(eval("1 ? 42 : 0").unwrap(), CalcVal::Int(42));
+    }
+
+    #[test]
+    fn test_conditional_false_branch() {
+        assert_eq!(eval("0 ? 42 : 99").unwrap(), CalcVal::Int(99));
+    }
+
+    // --- Operator precedence ---
+
+    #[test]
+    fn test_precedence_mul_over_add() {
+        assert_eq!(eval("2 + 3 * 4").unwrap(), CalcVal::Int(14));
+    }
+
+    #[test]
+    fn test_precedence_parentheses() {
+        assert_eq!(eval("(2 + 3) * 4").unwrap(), CalcVal::Int(20));
+    }
+
+    #[test]
+    fn test_precedence_shift_same_as_mul() {
+        // shifts are at the same precedence as multiply/divide/modulo
+        // 2 * 3 << 1: with equal precedence and left assoc, this is (2 * 3) << 1 = 12
+        assert_eq!(eval("2 * 3 << 1").unwrap(), CalcVal::Int(12));
+    }
+
+    #[test]
+    fn test_precedence_comparison_below_add() {
+        // 3 + 1 > 3 should be (3 + 1) > 3 = 1
+        assert_eq!(eval("3 + 1 > 3").unwrap(), CalcVal::Int(1));
+    }
+
+    #[test]
+    fn test_precedence_bitwise_between_add_and_comparison() {
+        // 2 | 1 + 3: add binds tighter, so 2 | 4 = 6
+        assert_eq!(eval("2 | 1 + 3").unwrap(), CalcVal::Int(6));
+    }
+
+    // --- String operations ---
+
+    #[test]
+    fn test_string_repeat() {
+        assert_eq!(
+            eval("\"ab\" * 3").unwrap(),
+            CalcVal::String("ababab".to_string())
+        );
+    }
+
+    #[test]
+    fn test_string_concat_two_strings() {
+        assert_eq!(
+            eval("\"hello\" + \"world\"").unwrap(),
+            CalcVal::String("helloworld".to_string())
+        );
+    }
+
+    #[test]
+    fn test_string_equality() {
+        assert_eq!(eval("\"abc\" == \"abc\"").unwrap(), CalcVal::Int(1));
+        assert_eq!(eval("\"abc\" == \"def\"").unwrap(), CalcVal::Int(0));
+    }
+
+    // --- Variables with dots ---
+
+    #[test]
+    fn test_dotted_variable() {
+        let no_func: EmptyVarsFunc = false;
+        let mut vars: MyVarDict = Default::default();
+        vars.vars.insert("foo.bar".to_string(), "10".to_string());
+
+        assert_eq!(
+            eval_with("foo.bar + 5", &vars, &no_func).unwrap(),
+            CalcVal::Int(15)
+        );
+    }
+
+    // --- Functions with multiple args ---
+
+    #[test]
+    fn test_function_with_expression_arg() {
+        let no_vars: EmptyVarsFunc = false;
+        let funcs: MyVarDict = Default::default();
+
+        assert_eq!(
+            eval_with("int2hex(16 + 26)", &no_vars, &funcs).unwrap(),
+            CalcVal::String("2a".to_string())
+        );
+    }
+
+    // --- Complex expressions ---
+
+    #[test]
+    fn test_nested_parentheses() {
+        assert_eq!(eval("((2 + 3) * (4 - 1))").unwrap(), CalcVal::Int(15));
+    }
+
+    #[test]
+    fn test_chained_comparisons() {
+        // (1 == 1) == 1 => 1 == 1 => 1 (left associative)
+        assert_eq!(eval("1 == 1 == 1").unwrap(), CalcVal::Int(1));
+    }
 }
