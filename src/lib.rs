@@ -717,4 +717,300 @@ mod tests {
         // (1 == 1) == 1 => 1 == 1 => 1 (left associative)
         assert_eq!(eval("1 == 1 == 1").unwrap(), CalcVal::Int(1));
     }
+
+    // --- CalcVal Display trait ---
+
+    #[test]
+    fn test_display_int() {
+        let v = CalcVal::Int(42);
+        assert_eq!(format!("{}", v), "42");
+    }
+
+    #[test]
+    fn test_display_string() {
+        let v = CalcVal::String("hello".to_string());
+        assert_eq!(format!("{}", v), "hello");
+    }
+
+    // --- String operand branches for Add ---
+
+    #[test]
+    fn test_add_string_plus_int() {
+        assert_eq!(
+            eval("\"hello\" + 5").unwrap(),
+            CalcVal::String("hello5".to_string())
+        );
+    }
+
+    // --- String operand branches for Sub ---
+
+    #[test]
+    fn test_sub_int_minus_string() {
+        assert_eq!(
+            eval("5 - \"x\"").unwrap(),
+            CalcVal::String("5x".to_string())
+        );
+    }
+
+    #[test]
+    fn test_sub_string_minus_int() {
+        assert_eq!(
+            eval("\"a\" - 1").unwrap(),
+            CalcVal::String("a1".to_string())
+        );
+    }
+
+    #[test]
+    fn test_sub_string_minus_string() {
+        assert_eq!(
+            eval("\"a\" - \"b\"").unwrap(),
+            CalcVal::String("ab".to_string())
+        );
+    }
+
+    // --- String operand branches for Mul ---
+
+    #[test]
+    fn test_mul_int_times_string() {
+        assert_eq!(
+            eval("3 * \"x\"").unwrap(),
+            CalcVal::String("3x".to_string())
+        );
+    }
+
+    #[test]
+    fn test_mul_string_times_string() {
+        assert_eq!(
+            eval("\"a\" * \"b\"").unwrap(),
+            CalcVal::String("ab".to_string())
+        );
+    }
+
+    // --- String operand branches for Div ---
+
+    #[test]
+    fn test_div_int_div_string() {
+        assert_eq!(
+            eval("5 / \"x\"").unwrap(),
+            CalcVal::String("5x".to_string())
+        );
+    }
+
+    #[test]
+    fn test_div_string_div_int() {
+        assert_eq!(
+            eval("\"a\" / 2").unwrap(),
+            CalcVal::String("a2".to_string())
+        );
+    }
+
+    #[test]
+    fn test_div_string_div_string() {
+        assert_eq!(
+            eval("\"a\" / \"b\"").unwrap(),
+            CalcVal::String("ab".to_string())
+        );
+    }
+
+    // --- String operand branches for Rem ---
+
+    #[test]
+    fn test_rem_int_mod_string() {
+        assert_eq!(
+            eval("5 % \"x\"").unwrap(),
+            CalcVal::String("5x".to_string())
+        );
+    }
+
+    #[test]
+    fn test_rem_string_mod_int() {
+        assert_eq!(
+            eval("\"a\" % 2").unwrap(),
+            CalcVal::String("a2".to_string())
+        );
+    }
+
+    #[test]
+    fn test_rem_string_mod_string() {
+        assert_eq!(
+            eval("\"a\" % \"b\"").unwrap(),
+            CalcVal::String("ab".to_string())
+        );
+    }
+
+    // --- String operand branches for Shl ---
+
+    #[test]
+    fn test_shl_int_string() {
+        assert_eq!(
+            eval("5 << \"x\"").unwrap(),
+            CalcVal::String("5x".to_string())
+        );
+    }
+
+    #[test]
+    fn test_shl_string_int() {
+        assert_eq!(
+            eval("\"a\" << 2").unwrap(),
+            CalcVal::String("a2".to_string())
+        );
+    }
+
+    #[test]
+    fn test_shl_string_string() {
+        assert_eq!(
+            eval("\"a\" << \"b\"").unwrap(),
+            CalcVal::String("ab".to_string())
+        );
+    }
+
+    // --- String operand branches for Shr ---
+
+    #[test]
+    fn test_shr_int_string() {
+        assert_eq!(
+            eval("5 >> \"x\"").unwrap(),
+            CalcVal::String("5x".to_string())
+        );
+    }
+
+    #[test]
+    fn test_shr_string_int() {
+        assert_eq!(
+            eval("\"a\" >> 2").unwrap(),
+            CalcVal::String("a2".to_string())
+        );
+    }
+
+    #[test]
+    fn test_shr_string_string() {
+        assert_eq!(
+            eval("\"a\" >> \"b\"").unwrap(),
+            CalcVal::String("ab".to_string())
+        );
+    }
+
+    // --- String operand branches for BitOr ---
+
+    #[test]
+    fn test_bitor_int_string() {
+        assert_eq!(
+            eval("5 | \"x\"").unwrap(),
+            CalcVal::String("5x".to_string())
+        );
+    }
+
+    #[test]
+    fn test_bitor_string_int() {
+        assert_eq!(
+            eval("\"a\" | 2").unwrap(),
+            CalcVal::String("a2".to_string())
+        );
+    }
+
+    #[test]
+    fn test_bitor_string_string() {
+        assert_eq!(
+            eval("\"a\" | \"b\"").unwrap(),
+            CalcVal::String("ab".to_string())
+        );
+    }
+
+    // --- String operand branches for BitAnd ---
+
+    #[test]
+    fn test_bitand_int_string() {
+        assert_eq!(
+            eval("5 & \"x\"").unwrap(),
+            CalcVal::String("5x".to_string())
+        );
+    }
+
+    #[test]
+    fn test_bitand_string_int() {
+        assert_eq!(
+            eval("\"a\" & 2").unwrap(),
+            CalcVal::String("a2".to_string())
+        );
+    }
+
+    #[test]
+    fn test_bitand_string_string() {
+        assert_eq!(
+            eval("\"a\" & \"b\"").unwrap(),
+            CalcVal::String("ab".to_string())
+        );
+    }
+
+    // --- String operand branches for BitXor ---
+
+    #[test]
+    fn test_bitxor_int_string() {
+        assert_eq!(
+            eval("5 ^ \"x\"").unwrap(),
+            CalcVal::String("5x".to_string())
+        );
+    }
+
+    #[test]
+    fn test_bitxor_string_int() {
+        assert_eq!(
+            eval("\"a\" ^ 2").unwrap(),
+            CalcVal::String("a2".to_string())
+        );
+    }
+
+    #[test]
+    fn test_bitxor_string_string() {
+        assert_eq!(
+            eval("\"a\" ^ \"b\"").unwrap(),
+            CalcVal::String("ab".to_string())
+        );
+    }
+
+    // --- parse_calc_val edge cases ---
+
+    #[test]
+    fn test_parse_calc_val_single_char() {
+        // Single char string (len < 2) goes through the else branch
+        assert_eq!(
+            parse_calc_val("x").unwrap(),
+            CalcVal::String("x".to_string())
+        );
+    }
+
+    // --- Error paths ---
+
+    #[test]
+    fn test_parse_error() {
+        // Invalid expression triggers ParseError via From impl
+        let result = eval("+++");
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            Error::ParseError(_) => {}
+            e => panic!("Expected ParseError, got {:?}", e),
+        }
+    }
+
+    #[test]
+    fn test_variable_not_found() {
+        // eval() uses EmptyVarsFunc which returns VariableNotFound
+        let result = eval("somevar + 1");
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            Error::VariableNotFound(name) => assert_eq!(name, "somevar"),
+            e => panic!("Expected VariableNotFound, got {:?}", e),
+        }
+    }
+
+    #[test]
+    fn test_function_not_found() {
+        // eval() uses EmptyVarsFunc which returns FunctionNotFound
+        let result = eval("somefunc(1)");
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            Error::FunctionNotFound(name) => assert_eq!(name, "somefunc"),
+            e => panic!("Expected FunctionNotFound, got {:?}", e),
+        }
+    }
 }
