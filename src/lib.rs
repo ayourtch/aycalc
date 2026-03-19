@@ -6,7 +6,7 @@ extern crate lazy_static;
 
 use pest::iterators::Pair;
 use pest::iterators::Pairs;
-use pest::prec_climber::*;
+use pest::pratt_parser::*;
 use pest::Parser;
 use std::convert::TryInto;
 use std::fmt;
@@ -228,26 +228,24 @@ pub trait CallFunc {
 }
 
 lazy_static! {
-    static ref PREC_CLIMBER: PrecClimber<Rule> = {
+    static ref PRATT_PARSER: PrattParser<Rule> = {
         use Assoc::*;
         use Rule::*;
 
-        PrecClimber::new(vec![
-            Operator::new(conditional, Left),
-            Operator::new(equal, Left)
-                | Operator::new(not_equal, Left)
-                | Operator::new(greater, Left)
-                | Operator::new(greater_equal, Left)
-                | Operator::new(less, Left)
-                | Operator::new(less_equal, Left),
-            Operator::new(bitor, Left) | Operator::new(bitand, Left) | Operator::new(bitxor, Left),
-            Operator::new(add, Left) | Operator::new(subtract, Left),
-            Operator::new(multiply, Left)
-                | Operator::new(divide, Left)
-                | Operator::new(modulo, Left)
-                | Operator::new(shr, Left)
-                | Operator::new(shl, Left),
-        ])
+        PrattParser::new()
+            .op(Op::infix(equal, Left)
+                | Op::infix(not_equal, Left)
+                | Op::infix(greater, Left)
+                | Op::infix(greater_equal, Left)
+                | Op::infix(less, Left)
+                | Op::infix(less_equal, Left))
+            .op(Op::infix(bitor, Left) | Op::infix(bitand, Left) | Op::infix(bitxor, Left))
+            .op(Op::infix(add, Left) | Op::infix(subtract, Left))
+            .op(Op::infix(multiply, Left)
+                | Op::infix(divide, Left)
+                | Op::infix(modulo, Left)
+                | Op::infix(shr, Left)
+                | Op::infix(shl, Left))
     };
 }
 
@@ -340,20 +338,22 @@ fn aycalc_eval(
     vars: &impl GetVar,
     func: &impl CallFunc,
 ) -> Result<CalcVal, Error> {
-    PREC_CLIMBER.climb(
-        expression,
-        |pair: Pair<Rule>| eval_pair(pair, vars, func),
-        |lhs: Result<CalcVal, Error>, op: Pair<Rule>, rhs: Result<CalcVal, Error>| {
-            let lhs = lhs?;
-            let rhs = rhs?;
-            Ok(aycalc_eval_pure(lhs, op, rhs))
-        },
-    )
+    PRATT_PARSER
+        .map_primary(|pair: Pair<Rule>| eval_pair(pair, vars, func))
+        .map_infix(
+            |lhs: Result<CalcVal, Error>, op: Pair<Rule>, rhs: Result<CalcVal, Error>| {
+                let lhs = lhs?;
+                let rhs = rhs?;
+                Ok(aycalc_eval_pure(lhs, op, rhs))
+            },
+        )
+        .parse(expression)
 }
 
 pub fn eval_with(expr: &str, vars: &impl GetVar, func: &impl CallFunc) -> Result<CalcVal, Error> {
-    let parser = AyCalcParser::parse(Rule::calculation, expr)?;
-    aycalc_eval(parser, vars, func)
+    let mut parser = AyCalcParser::parse(Rule::calculation, expr)?;
+    let expr_pair = parser.next().unwrap();
+    aycalc_eval(expr_pair.into_inner(), vars, func)
 }
 
 type EmptyVarsFunc = bool;
@@ -372,8 +372,9 @@ impl CallFunc for EmptyVarsFunc {
 
 pub fn eval(expr: &str) -> Result<CalcVal, Error> {
     let vf: EmptyVarsFunc = false;
-    let parser = AyCalcParser::parse(Rule::calculation, expr)?;
-    aycalc_eval(parser, &vf, &vf)
+    let mut parser = AyCalcParser::parse(Rule::calculation, expr)?;
+    let expr_pair = parser.next().unwrap();
+    aycalc_eval(expr_pair.into_inner(), &vf, &vf)
 }
 
 #[cfg(test)]
