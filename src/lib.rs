@@ -5,7 +5,6 @@ extern crate pest_derive;
 extern crate lazy_static;
 
 use pest::iterators::Pair;
-use pest::iterators::Pairs;
 use pest::pratt_parser::*;
 use pest::Parser;
 use std::convert::TryInto;
@@ -249,6 +248,20 @@ lazy_static! {
     };
 }
 
+fn eval_conditional(pair: Pair<Rule>, vars: &impl GetVar, func: &impl CallFunc) -> Result<CalcVal, Error> {
+    let mut i = pair.into_inner();
+    /* the below three unwraps will never panic because the parser verified these three
+     * arguments exist */
+    let question = i.next().unwrap();
+    let true_answer = i.next().unwrap();
+    let false_answer = i.next().unwrap();
+    if eval_pair(question, vars, func)? == CalcVal::Int(0) {
+        eval_pair(false_answer, vars, func)
+    } else {
+        eval_pair(true_answer, vars, func)
+    }
+}
+
 pub fn parse_calc_val(s: &str) -> Result<CalcVal, Error> {
     if let Ok(x) = s.parse::<i128>() {
         Ok(CalcVal::Int(x))
@@ -269,19 +282,7 @@ fn eval_pair(pair: Pair<Rule>, vars: &impl GetVar, func: &impl CallFunc) -> Resu
     match pair.as_rule() {
         Rule::num => parse_calc_val(pair.as_str()),
         Rule::expr => aycalc_eval(pair.into_inner(), vars, func),
-        Rule::conditional => {
-            let mut i = pair.into_inner();
-            /* the below three unwraps will never panic because the parser verified these three
-             * arguments exist */
-            let question = i.next().unwrap();
-            let true_answer = i.next().unwrap();
-            let false_answer = i.next().unwrap();
-            if eval_pair(question, vars, func)? == CalcVal::Int(0) {
-                eval_pair(false_answer, vars, func)
-            } else {
-                eval_pair(true_answer, vars, func)
-            }
-        }
+        Rule::conditional => eval_conditional(pair, vars, func),
         Rule::string => parse_calc_val(pair.as_str()),
         Rule::variable => {
             // trim is needed because of the bogus space that is returned in case the varname does
@@ -333,25 +334,24 @@ fn aycalc_eval_pure(lhs: CalcVal, op: Pair<Rule>, rhs: CalcVal) -> CalcVal {
     }
 }
 
-fn aycalc_eval(
-    expression: Pairs<Rule>,
+fn aycalc_eval<'a>(
+    expression: impl Iterator<Item = Pair<'a, Rule>>,
     vars: &impl GetVar,
     func: &impl CallFunc,
 ) -> Result<CalcVal, Error> {
     PRATT_PARSER
-        .map_primary(|pair: Pair<Rule>| eval_pair(pair, vars, func))
-        .map_infix(
-            |lhs: Result<CalcVal, Error>, op: Pair<Rule>, rhs: Result<CalcVal, Error>| {
-                let lhs = lhs?;
-                let rhs = rhs?;
-                Ok(aycalc_eval_pure(lhs, op, rhs))
-            },
-        )
+        .map_primary(|pair| eval_pair(pair, vars, func))
+        .map_infix(|lhs, op, rhs| {
+            let lhs = lhs?;
+            let rhs = rhs?;
+            Ok(aycalc_eval_pure(lhs, op, rhs))
+        })
         .parse(expression)
 }
 
 pub fn eval_with(expr: &str, vars: &impl GetVar, func: &impl CallFunc) -> Result<CalcVal, Error> {
     let mut parser = AyCalcParser::parse(Rule::calculation, expr)?;
+    // Get the expr rule from the calculation and pass its inner pairs to Pratt parser
     let expr_pair = parser.next().unwrap();
     aycalc_eval(expr_pair.into_inner(), vars, func)
 }
